@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Risk Assessments - AML Service{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Risk Assessment Management</h2>
+                <a href="{% url 'admin:core_riskassessment_add' %}" class="btn btn-primary">
+                    <i class="fas fa-chart-line me-2"></i>New Assessment
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Assessment Type</th>
+                                    <th>Risk Factors</th>
+                                    <th>Overall Score</th>
+                                    <th>Assessment Date</th>
+                                    <th>Next Review</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assessment in assessments %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-user-circle text-secondary me-2"></i>
+                                            <div>
+                                                <div class="fw-bold">{{ assessment.customer.user.username }}</div>
+                                                <small class="text-muted">{{ assessment.customer.customer_type }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ assessment.assessment_type }}</span>
+                                        {% if assessment.assessment_type == 'enhanced' %}
+                                            <i class="fas fa-exclamation-triangle text-warning ms-1" 
+                                               title="Enhanced Due Diligence Required"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            {% with factors=assessment.risk_factors %}
+                                                {% if factors.pep_status %}
+                                                    <span class="badge bg-warning text-dark me-1">PEP</span>
+                                                {% endif %}
+                                                {% if factors.high_risk_jurisdiction %}
+                                                    <span class="badge bg-danger me-1">High-Risk Country</span>
+                                                {% endif %}
+                                                {% if factors.complex_ownership %}
+                                                    <span class="badge bg-warning text-dark me-1">Complex Structure</span>
+                                                {% endif %}
+                                                {% if factors.suspicious_activity %}
+                                                    <span class="badge bg-danger me-1">Suspicious Activity</span>
+                                                {% endif %}
+                                                {% if factors.high_risk_business %}
+                                                    <span class="badge bg-danger me-1">High-Risk Business</span>
+                                                {% endif %}
+                                                {% if factors.sanctions_match %}
+                                                    <span class="badge bg-danger">Sanctions Match</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% with score=assessment.overall_score %}
+                                        <div class="d-flex align-items-center">
+                                            {% if score >= 0.7 %}
+                                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                    <div class="progress-bar bg-danger" style="width: {% widthratio score 1 100 %}%"></div>
+                                                </div>
+                                                <span class="badge bg-danger">High ({{ score|floatformat:2 }})</span>
+                                            {% elif score >= 0.3 %}
+                                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                    <div class="progress-bar bg-warning" style="width: {% widthratio score 1 100 %}%"></div>
+                                                </div>
+                                                <span class="badge bg-warning text-dark">Medium ({{ score|floatformat:2 }})</span>
+                                            {% else %}
+                                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                    <div class="progress-bar bg-success" style="width: {% widthratio score 1 100 %}%"></div>
+                                                </div>
+                                                <span class="badge bg-success">Low ({{ score|floatformat:2 }})</span>
+                                            {% endif %}
+                                        </div>
+                                        {% endwith %}
+                                    </td>
+                                    <td>{{ assessment.assessment_date|date:"d M Y" }}</td>
+                                    <td>
+                                        {% if assessment.next_review_date %}
+                                            {% if assessment.next_review_date < now %}
+                                                <span class="text-danger">
+                                                    <i class="fas fa-exclamation-circle"></i>
+                                                    Overdue ({{ assessment.next_review_date|date:"d M Y" }})
+                                                </span>
+                                            {% elif assessment.next_review_date|timeuntil:now < '30 days' %}
+                                                <span class="text-warning">
+                                                    <i class="fas fa-clock"></i>
+                                                    Due soon ({{ assessment.next_review_date|date:"d M Y" }})
+                                                </span>
+                                            {% else %}
+                                                {{ assessment.next_review_date|date:"d M Y" }}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Not scheduled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                Actions
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'admin:core_riskassessment_change' assessment.id %}">
+                                                        <i class="fas fa-search me-2"></i>View Details
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'admin:core_riskassessment_add' %}?customer={{ assessment.customer.id }}">
+                                                        <i class="fas fa-sync me-2"></i>New Assessment
+                                                    </a>
+                                                </li>
+                                                {% if assessment.overall_score >= 0.7 %}
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="fas fa-flag me-2"></i>Report to FCA
+                                                    </a>
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-chart-line fa-3x mb-3"></i>
+                                            <p>No risk assessments conducted yet.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

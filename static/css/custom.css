@@ -1,0 +1,230 @@
+/* AML Service Custom Styles */
+
+/* Risk Score Indicators */
+.risk-score {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+}
+
+.risk-score-high {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.risk-score-medium {
+    background-color: rgba(243, 156, 18, 0.1);
+    color: #f39c12;
+    border: 1px solid rgba(243, 156, 18, 0.2);
+}
+
+.risk-score-low {
+    background-color: rgba(46, 204, 113, 0.1);
+    color: #27ae60;
+    border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+/* Dashboard Cards */
+.metric-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
+    border-radius: 1rem;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.05);
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 5px 5px 20px rgba(0,0,0,0.1);
+}
+
+.metric-card .card-body {
+    padding: 1.5rem;
+}
+
+.metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.metric-icon.risk {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+.metric-icon.transaction {
+    background-color: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+}
+
+.metric-icon.document {
+    background-color: rgba(46, 204, 113, 0.1);
+    color: #27ae60;
+}
+
+/* Transaction List */
+.transaction-item {
+    border-left: 4px solid transparent;
+    transition: background-color 0.2s ease;
+}
+
+.transaction-item:hover {
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
+.transaction-item.suspicious {
+    border-left-color: #e74c3c;
+}
+
+.transaction-item.cleared {
+    border-left-color: #27ae60;
+}
+
+/* Document Verification */
+.document-status {
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.document-status.pending {
+    background-color: rgba(243, 156, 18, 0.1);
+    color: #f39c12;
+}
+
+.document-status.verified {
+    background-color: rgba(46, 204, 113, 0.1);
+    color: #27ae60;
+}
+
+.document-status.rejected {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+/* Customer Profile */
+.customer-profile {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    padding: 2rem;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+}
+
+/* Risk Assessment Timeline */
+.assessment-timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.assessment-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 2rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -2rem;
+    top: 0;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background-color: white;
+    border: 2px solid #3498db;
+}
+
+/* Form Styling */
+.aml-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.form-control {
+    border-radius: 0.5rem;
+    border: 1px solid #e9ecef;
+    padding: 0.75rem 1rem;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    border-color: #3498db;
+}
+
+/* Alerts and Notifications */
+.alert {
+    border: none;
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+}
+
+.alert-success {
+    background-color: rgba(46, 204, 113, 0.1);
+    color: #27ae60;
+}
+
+.alert-warning {
+    background-color: rgba(243, 156, 18, 0.1);
+    color: #f39c12;
+}
+
+.alert-danger {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .metric-card {
+        margin-bottom: 1rem;
+    }
+    
+    .customer-profile {
+        padding: 1.5rem;
+    }
+    
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .profile-avatar {
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+}

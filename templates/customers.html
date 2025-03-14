@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Customers - AML Service{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Customer Management</h2>
+                <a href="{% url 'admin:core_customer_add' %}" class="btn btn-primary">
+                    <i class="fas fa-user-plus me-2"></i>Add New Customer
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Type</th>
+                                    <th>Risk Score</th>
+                                    <th>Compliance Status</th>
+                                    <th>Verification Status</th>
+                                    <th>Last Assessment</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in customers %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-user-circle fa-2x text-secondary me-2"></i>
+                                            <div>
+                                                <div class="fw-bold">{{ customer.user.get_full_name|default:customer.user.username }}</div>
+                                                <small class="text-muted">{{ customer.user.email }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ customer.customer_type }}</span>
+                                    </td>
+                                    <td>
+                                        {% with score=customer.risk_score %}
+                                        {% if score >= 0.7 %}
+                                            <span class="badge bg-danger">High Risk ({{ score|floatformat:2 }})</span>
+                                        {% elif score >= 0.3 %}
+                                            <span class="badge bg-warning text-dark">Medium Risk ({{ score|floatformat:2 }})</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Low Risk ({{ score|floatformat:2 }})</span>
+                                        {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        {% if customer.compliance_status == 'compliant' %}
+                                            <span class="badge bg-success">Compliant</span>
+                                        {% elif customer.compliance_status == 'review' %}
+                                            <span class="badge bg-warning text-dark">Under Review</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Non-Compliant</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.is_verified %}
+                                            <span class="badge bg-success">Verified</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.riskassessment_set.exists %}
+                                            {{ customer.riskassessment_set.latest.assessment_date|date:"d M Y" }}
+                                        {% else %}
+                                            <span class="text-muted">No assessment</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                Actions
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'admin:core_customer_change' customer.id %}">
+                                                        <i class="fas fa-edit me-2"></i>Edit Details
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'admin:core_riskassessment_add' %}?customer={{ customer.id }}">
+                                                        <i class="fas fa-chart-line me-2"></i>New Assessment
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'admin:core_verificationdocument_add' %}?customer={{ customer.id }}">
+                                                        <i class="fas fa-file-upload me-2"></i>Upload Document
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="{% url 'admin:core_customer_delete' customer.id %}">
+                                                        <i class="fas fa-trash-alt me-2"></i>Delete
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-users fa-3x mb-3"></i>
+                                            <p>No customers found. Add your first customer to start monitoring.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

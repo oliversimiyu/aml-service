@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Documents - AML Service{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Document Verification</h2>
+                <a href="{% url 'admin:core_verificationdocument_add' %}" class="btn btn-primary">
+                    <i class="fas fa-file-upload me-2"></i>Upload Document
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Document</th>
+                                    <th>Customer</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Upload Date</th>
+                                    <th>Expiry Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for document in documents %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if document.document_type == 'passport' %}
+                                                <i class="fas fa-passport fa-2x text-primary me-2"></i>
+                                            {% elif document.document_type == 'drivers_license' %}
+                                                <i class="fas fa-id-card fa-2x text-info me-2"></i>
+                                            {% elif document.document_type == 'utility_bill' %}
+                                                <i class="fas fa-file-invoice fa-2x text-success me-2"></i>
+                                            {% else %}
+                                                <i class="fas fa-file-alt fa-2x text-secondary me-2"></i>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ document.document_number }}</div>
+                                                <small class="text-muted">{{ document.issuing_country }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-user-circle text-secondary me-2"></i>
+                                            {{ document.customer.user.username }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ document.document_type|title }}</span>
+                                    </td>
+                                    <td>
+                                        {% if document.verification_status == 'verified' %}
+                                            <span class="badge bg-success">Verified</span>
+                                        {% elif document.verification_status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ document.upload_date|date:"d M Y" }}</td>
+                                    <td>
+                                        {% if document.expiry_date %}
+                                            {% if document.expiry_date < now %}
+                                                <span class="text-danger">
+                                                    <i class="fas fa-exclamation-circle"></i>
+                                                    Expired ({{ document.expiry_date|date:"d M Y" }})
+                                                </span>
+                                            {% elif document.expiry_date|timeuntil:now < '30 days' %}
+                                                <span class="text-warning">
+                                                    <i class="fas fa-clock"></i>
+                                                    Expiring soon ({{ document.expiry_date|date:"d M Y" }})
+                                                </span>
+                                            {% else %}
+                                                {{ document.expiry_date|date:"d M Y" }}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                Actions
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'admin:core_verificationdocument_change' document.id %}">
+                                                        <i class="fas fa-search me-2"></i>Review Document
+                                                    </a>
+                                                </li>
+                                                {% if document.verification_status == 'pending' %}
+                                                <li>
+                                                    <a class="dropdown-item text-success" href="{% url 'admin:core_verificationdocument_change' document.id %}">
+                                                        <i class="fas fa-check-circle me-2"></i>Verify
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="{% url 'admin:core_verificationdocument_change' document.id %}">
+                                                        <i class="fas fa-times-circle me-2"></i>Reject
+                                                    </a>
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-file-alt fa-3x mb-3"></i>
+                                            <p>No verification documents uploaded yet.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
