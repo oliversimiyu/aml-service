@@ -2,12 +2,144 @@
 
 {% block title %}Customers - AML Service{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Card and Badge Styles */
+    .risk-badge {
+        transition: all 0.3s ease;
+    }
+    .risk-badge:hover {
+        transform: scale(1.1);
+    }
+    .customer-card {
+        transition: all 0.3s ease;
+    }
+    .customer-card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+
+    /* Progress Bar Styles */
+    .progress {
+        height: 25px;
+        font-size: 0.9rem;
+        background-color: rgba(0,0,0,.05);
+        border-radius: 1rem;
+    }
+    .progress-bar {
+        transition: width 1s ease-in-out;
+    }
+    .progress small {
+        text-shadow: 0 1px 2px rgba(0,0,0,.2);
+    }
+
+    /* Statistics Card Styles */
+    .stat-card {
+        border-radius: 1rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: none;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,.1);
+    }
+    .stat-card .icon-circle {
+        height: 3rem;
+        width: 3rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover .icon-circle {
+        transform: scale(1.1);
+    }
+
+    /* Table Styles */
+    .table-hover tbody tr:hover {
+        background-color: rgba(0,0,0,.03);
+        cursor: pointer;
+    }
+
+    /* Warning Animation */
+    .assessment-warning {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+
+    /* Color Utilities */
+    .bg-primary-light {
+        background-color: rgba(94,114,228,.1);
+    }
+    .bg-danger-light {
+        background-color: rgba(245,54,92,.1);
+    }
+    .bg-warning-light {
+        background-color: rgba(251,99,64,.1);
+    }
+    .bg-info-light {
+        background-color: rgba(17,205,239,.1);
+    }
+    .bg-success-light {
+        background-color: rgba(45,206,137,.1);
+    }
+
+    /* Badge Styles */
+    .badge {
+        font-weight: 600;
+        letter-spacing: 0.025em;
+        text-transform: uppercase;
+        padding: 0.35em 0.65em;
+    }
+    .rounded-pill {
+        border-radius: 50rem;
+    }
+
+    /* Typography */
+    .display-4 {
+        font-size: 2.5rem;
+        font-weight: 600;
+        line-height: 1.2;
+    }
+    .text-uppercase {
+        letter-spacing: 0.025em;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
+    <!-- Messages -->
+    {% if messages %}
+    <div class="row mb-4">
+        <div class="col">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row mb-4">
         <div class="col">
             <div class="d-flex justify-content-between align-items-center">
-                <h2>Customer Management</h2>
+                <div>
+                    <h2>Customer Management</h2>
+                    {% if reassessment_needed_count > 0 %}
+                    <div class="text-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        {{ reassessment_needed_count }} customer{{ reassessment_needed_count|pluralize:"s" }} need{{ reassessment_needed_count|pluralize:"s," }} risk reassessment
+                    </div>
+                    {% endif %}
+                </div>
                 <a href="{% url 'admin:core_customer_add' %}" class="btn btn-primary">
                     <i class="fas fa-user-plus me-2"></i>Add New Customer
                 </a>
@@ -15,97 +147,341 @@
         </div>
     </div>
 
+    <!-- AML Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card card shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="icon-circle bg-primary-light text-primary">
+                            <i class="fas fa-users fa-lg"></i>
+                        </div>
+                        <span class="badge bg-success-light text-success px-3 py-2 rounded-pill">
+                            <i class="fas fa-chart-line me-1"></i>
+                            Active
+                        </span>
+                    </div>
+                    <h3 class="card-title h5 text-uppercase text-muted mb-2">Total Customers</h3>
+                    <div class="d-flex align-items-baseline">
+                        <h2 class="display-4 mb-0 me-2">{{ total_customers }}</h2>
+                        <small class="text-success">
+                            <i class="fas fa-arrow-up me-1"></i>{{ customer_growth }}%
+                        </small>
+                    </div>
+                    <p class="text-muted mt-3 mb-0">
+                        <i class="fas fa-info-circle me-1"></i>
+                        All monitored accounts
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card card shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="icon-circle bg-danger-light text-danger">
+                            <i class="fas fa-exclamation-triangle fa-lg"></i>
+                        </div>
+                        {% if high_risk_percentage > 30 %}
+                        <span class="badge bg-danger-light text-danger px-3 py-2 rounded-pill assessment-warning">
+                            <i class="fas fa-exclamation-circle me-1"></i>
+                            Above FCA Threshold
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h3 class="card-title h5 text-uppercase text-muted mb-2">High Risk Customers</h3>
+                    <div class="d-flex align-items-baseline">
+                        <h2 class="display-4 mb-0 me-2">{{ high_risk_count }}</h2>
+                        <span class="badge bg-danger px-2 py-1">
+                            {{ high_risk_percentage }}%
+                        </span>
+                    </div>
+                    <p class="text-muted mt-3 mb-0">
+                        <i class="fas fa-user-shield me-1"></i>
+                        Enhanced Due Diligence
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card card shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="icon-circle bg-warning-light text-warning">
+                            <i class="fas fa-shield-alt fa-lg"></i>
+                        </div>
+                    </div>
+                    <h3 class="card-title h5 text-uppercase text-muted mb-2">Risk Distribution</h3>
+                    <div class="progress mb-3" style="height: 25px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ low_risk_percentage }}%" 
+                             data-bs-toggle="tooltip" 
+                             title="Low Risk: {{ low_risk_percentage|floatformat:1 }}%">
+                            <small>{{ low_risk_percentage|floatformat:0 }}%</small>
+                        </div>
+                        <div class="progress-bar bg-warning" role="progressbar" 
+                             style="width: {{ medium_risk_percentage }}%"
+                             data-bs-toggle="tooltip"
+                             title="Medium Risk: {{ medium_risk_percentage|floatformat:1 }}%">
+                            <small>{{ medium_risk_percentage|floatformat:0 }}%</small>
+                        </div>
+                        <div class="progress-bar bg-danger" role="progressbar" 
+                             style="width: {{ high_risk_percentage }}%"
+                             data-bs-toggle="tooltip"
+                             title="High Risk: {{ high_risk_percentage|floatformat:1 }}%">
+                            <small>{{ high_risk_percentage|floatformat:0 }}%</small>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span><i class="fas fa-circle text-success me-1"></i>Low</span>
+                        <span><i class="fas fa-circle text-warning me-1"></i>Medium</span>
+                        <span><i class="fas fa-circle text-danger me-1"></i>High</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card card shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="icon-circle bg-info-light text-info">
+                            <i class="fas fa-file-alt fa-lg"></i>
+                        </div>
+                        {% if cdd_complete_percentage < 80 %}
+                        <span class="badge bg-warning-light text-warning px-3 py-2 rounded-pill assessment-warning">
+                            <i class="fas fa-exclamation-circle me-1"></i>
+                            Below Target
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h3 class="card-title h5 text-uppercase text-muted mb-2">Due Diligence Status</h3>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted">CDD Complete</span>
+                            <span class="badge bg-info px-2 py-1">{{ cdd_complete_percentage|default:0 }}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-info" role="progressbar" 
+                                 style="width: {{ cdd_complete_percentage|default:0 }}%"
+                                 data-bs-toggle="tooltip"
+                                 title="Customer Due Diligence completion rate"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted">EDD Required</span>
+                            <span class="badge bg-warning px-2 py-1">{{ high_risk_percentage }}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-warning" role="progressbar" 
+                                 style="width: {{ high_risk_percentage }}%"
+                                 data-bs-toggle="tooltip"
+                                 title="Enhanced Due Diligence required for high-risk customers"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col">
-            <div class="card shadow-sm">
-                <div class="card-body">
+            <div class="card shadow-sm customer-card">
+                <div class="card-header bg-white py-3">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" id="customerSearch" class="form-control border-start-0" 
+                                       placeholder="Search customers..." aria-label="Search customers">
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-secondary" data-filter="all">
+                                    All
+                                </button>
+                                <button type="button" class="btn btn-outline-success" data-filter="low">
+                                    Low Risk
+                                </button>
+                                <button type="button" class="btn btn-outline-warning" data-filter="medium">
+                                    Medium Risk
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" data-filter="high">
+                                    High Risk
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                        <table class="table table-hover mb-0" id="customerTable">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th>Customer</th>
-                                    <th>Type</th>
-                                    <th>Risk Score</th>
-                                    <th>Compliance Status</th>
-                                    <th>Verification Status</th>
-                                    <th>Last Assessment</th>
-                                    <th>Actions</th>
+                                    <th class="border-0">Customer</th>
+                                    <th class="border-0">Type</th>
+                                    <th class="border-0">Risk Score</th>
+                                    <th class="border-0">Compliance Status</th>
+                                    <th class="border-0">Verification Status</th>
+                                    <th class="border-0">Last Assessment</th>
+                                    <th class="border-0">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for customer in customers %}
+                                {% for data in customer_data %}
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <i class="fas fa-user-circle fa-2x text-secondary me-2"></i>
                                             <div>
-                                                <div class="fw-bold">{{ customer.user.get_full_name|default:customer.user.username }}</div>
-                                                <small class="text-muted">{{ customer.user.email }}</small>
+                                                <div class="fw-bold">{{ data.customer.user.get_full_name|default:data.customer.user.username }}</div>
+                                                <small class="text-muted">{{ data.customer.user.email }}</small>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge bg-info">{{ customer.customer_type }}</span>
+                                        <span class="badge bg-info">{{ data.customer.customer_type }}</span>
                                     </td>
                                     <td>
-                                        {% with score=customer.risk_score %}
-                                        {% if score >= 0.7 %}
-                                            <span class="badge bg-danger">High Risk ({{ score|floatformat:2 }})</span>
-                                        {% elif score >= 0.3 %}
-                                            <span class="badge bg-warning text-dark">Medium Risk ({{ score|floatformat:2 }})</span>
-                                        {% else %}
-                                            <span class="badge bg-success">Low Risk ({{ score|floatformat:2 }})</span>
-                                        {% endif %}
+                                        {% with score=data.customer.risk_score %}
+                                        <div class="d-flex align-items-center">
+                                            {% if score >= 0.7 %}
+                                                <span class="badge bg-danger risk-badge" data-bs-toggle="tooltip" 
+                                                      title="High risk - Enhanced Due Diligence required">
+                                                    High Risk ({{ score|floatformat:2 }})
+                                                </span>
+                                                <i class="fas fa-exclamation-circle text-danger ms-2" 
+                                                   data-bs-toggle="tooltip" 
+                                                   title="Requires immediate attention"></i>
+                                            {% elif score >= 0.3 %}
+                                                <span class="badge bg-warning text-dark risk-badge" data-bs-toggle="tooltip"
+                                                      title="Medium risk - Standard monitoring">
+                                                    Medium Risk ({{ score|floatformat:2 }})
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-success risk-badge" data-bs-toggle="tooltip"
+                                                      title="Low risk - Regular monitoring">
+                                                    Low Risk ({{ score|floatformat:2 }})
+                                                </span>
+                                            {% endif %}
+                                        </div>
                                         {% endwith %}
                                     </td>
                                     <td>
-                                        {% if customer.compliance_status == 'compliant' %}
-                                            <span class="badge bg-success">Compliant</span>
-                                        {% elif customer.compliance_status == 'review' %}
-                                            <span class="badge bg-warning text-dark">Under Review</span>
-                                        {% else %}
-                                            <span class="badge bg-danger">Non-Compliant</span>
-                                        {% endif %}
+                                        <div class="d-flex align-items-center">
+                                            {% if data.customer.compliance_status == 'compliant' %}
+                                                <span class="badge bg-success" data-bs-toggle="tooltip"
+                                                      title="Meets all FCA requirements">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    Compliant
+                                                </span>
+                                            {% elif data.customer.compliance_status == 'review' %}
+                                                <span class="badge bg-warning text-dark" data-bs-toggle="tooltip"
+                                                      title="Under compliance review">
+                                                    <i class="fas fa-search me-1"></i>
+                                                    Under Review
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger" data-bs-toggle="tooltip"
+                                                      title="Does not meet FCA requirements">
+                                                    <i class="fas fa-times-circle me-1"></i>
+                                                    Non-Compliant
+                                                </span>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                     <td>
-                                        {% if customer.is_verified %}
-                                            <span class="badge bg-success">Verified</span>
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">Pending</span>
-                                        {% endif %}
+                                        <div class="d-flex align-items-center">
+                                            {% if data.customer.is_verified %}
+                                                <span class="badge bg-success" data-bs-toggle="tooltip"
+                                                      title="Identity and documents verified">
+                                                    <i class="fas fa-user-check me-1"></i>
+                                                    Verified
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark" data-bs-toggle="tooltip"
+                                                      title="Verification documents pending">
+                                                    <i class="fas fa-user-clock me-1"></i>
+                                                    Pending
+                                                </span>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                     <td>
-                                        {% if customer.riskassessment_set.exists %}
-                                            {{ customer.riskassessment_set.latest.assessment_date|date:"d M Y" }}
+                                        {% if data.latest_assessment %}
+                                            <div>
+                                                <div class="d-flex align-items-center {% if data.needs_reassessment %}assessment-warning{% endif %}">
+                                                    <span class="badge bg-light text-dark me-2">
+                                                        {{ data.latest_assessment.assessment_date|date:"d M Y" }}
+                                                    </span>
+                                                    {% if data.needs_reassessment %}
+                                                    <span class="badge bg-warning text-dark" data-bs-toggle="tooltip"
+                                                          title="Assessment is over 90 days old">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        Due for review
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
                                         {% else %}
-                                            <span class="text-muted">No assessment</span>
+                                            <div class="assessment-warning">
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                                    No assessment
+                                                </span>
+                                                <small class="d-block text-danger mt-1">
+                                                    Required for FCA compliance
+                                                </small>
+                                            </div>
                                         {% endif %}
                                     </td>
                                     <td>
                                         <div class="btn-group">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="fas fa-cog me-1"></i>
                                                 Actions
                                             </button>
-                                            <ul class="dropdown-menu">
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                                 <li>
-                                                    <a class="dropdown-item" href="{% url 'admin:core_customer_change' customer.id %}">
-                                                        <i class="fas fa-edit me-2"></i>Edit Details
+                                                    <a class="dropdown-item" href="{% url 'admin:core_customer_change' data.customer.id %}">
+                                                        <i class="fas fa-edit me-2 text-primary"></i>Edit Details
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" href="{% url 'admin:core_riskassessment_add' %}?customer={{ customer.id }}">
-                                                        <i class="fas fa-chart-line me-2"></i>New Assessment
+                                                    <a class="dropdown-item {% if data.needs_reassessment %}fw-bold{% endif %}" 
+                                                       href="{% url 'admin:core_riskassessment_add' %}?customer={{ data.customer.id }}">
+                                                        <i class="fas fa-chart-line me-2 text-warning"></i>
+                                                        {% if data.needs_reassessment %}
+                                                            New Assessment Required
+                                                        {% else %}
+                                                            New Assessment
+                                                        {% endif %}
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" href="{% url 'admin:core_verificationdocument_add' %}?customer={{ customer.id }}">
-                                                        <i class="fas fa-file-upload me-2"></i>Upload Document
+                                                    <a class="dropdown-item {% if not data.customer.is_verified %}fw-bold{% endif %}" 
+                                                       href="{% url 'admin:core_verificationdocument_add' %}?customer={{ data.customer.id }}">
+                                                        <i class="fas fa-file-upload me-2 text-info"></i>
+                                                        {% if not data.customer.is_verified %}
+                                                            Upload Verification Documents
+                                                        {% else %}
+                                                            Upload Additional Documents
+                                                        {% endif %}
                                                     </a>
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
-                                                    <a class="dropdown-item text-danger" href="{% url 'admin:core_customer_delete' customer.id %}">
-                                                        <i class="fas fa-trash-alt me-2"></i>Delete
+                                                    <a class="dropdown-item text-danger" 
+                                                       href="{% url 'admin:core_customer_delete' data.customer.id %}"
+                                                       onclick="return confirm('Are you sure you want to delete this customer? This action cannot be undone.');">
+                                                        <i class="fas fa-trash-alt me-2"></i>Delete Customer
                                                     </a>
                                                 </li>
                                             </ul>
@@ -117,7 +493,7 @@
                                     <td colspan="7" class="text-center py-4">
                                         <div class="text-muted">
                                             <i class="fas fa-users fa-3x mb-3"></i>
-                                            <p>No customers found. Add your first customer to start monitoring.</p>
+                                            <p>No customers found. Add your first customer to start AML monitoring.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -130,4 +506,65 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Customer search functionality
+    const searchInput = document.getElementById('customerSearch');
+    const customerTable = document.getElementById('customerTable');
+    const rows = customerTable.getElementsByTagName('tr');
+
+    searchInput.addEventListener('keyup', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+
+        for (let row of rows) {
+            if (row.getElementsByTagName('th').length === 0) {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            }
+        }
+    });
+
+    // Risk filter functionality
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const filter = this.dataset.filter;
+            
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+
+            for (let row of rows) {
+                if (row.getElementsByTagName('th').length === 0) {
+                    const riskBadge = row.querySelector('.risk-badge');
+                    if (filter === 'all') {
+                        row.style.display = '';
+                    } else {
+                        const rowRisk = riskBadge.textContent.toLowerCase();
+                        row.style.display = rowRisk.includes(filter) ? '' : 'none';
+                    }
+                }
+            }
+        });
+    });
+
+    // Pulse animation for assessment warnings
+    setInterval(() => {
+        document.querySelectorAll('.assessment-warning').forEach(el => {
+            el.style.animation = 'none';
+            el.offsetHeight; // Trigger reflow
+            el.style.animation = null;
+        });
+    }, 4000);
+});
+</script>
 {% endblock %}

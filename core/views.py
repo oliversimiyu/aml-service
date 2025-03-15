@@ -100,11 +100,170 @@ def dashboard(request):
     
     return render(request, 'dashboard.html', context)
 
+from django.contrib import messages
+from django.db import DatabaseError
+from django.db.models import OuterRef, Subquery, Count, Case, When, F, FloatField, Q
+from django.utils import timezone
+from datetime import timedelta
+
 @login_required
 def customer_list(request):
-    """View for listing all customers with their risk profiles."""
-    customers = Customer.objects.all().order_by('-risk_score')
-    return render(request, 'customers.html', {'customers': customers})
+    """View for listing all customers with their risk profiles and latest risk assessments.
+    
+    Implements efficient querying using select_related for ForeignKey relationships
+    and annotates the latest risk assessment for each customer. Also calculates
+    risk distribution statistics for FCA compliance monitoring.
+    
+    Features:
+    - Efficient database querying with select_related and subqueries
+    - Risk distribution calculation for FCA compliance
+    - CDD (Customer Due Diligence) completion tracking
+    - Error handling for database operations
+    - Validation of risk assessment dates
+    """
+    try:
+        # Get customers with related user data in a single query
+        customers = Customer.objects.select_related('user').order_by('-risk_score')
+        
+        # Get latest valid risk assessment for each customer
+        three_months_ago = timezone.now() - timedelta(days=90)
+        latest_assessments = RiskAssessment.objects.filter(
+            customer=OuterRef('pk'),
+            assessment_date__gte=three_months_ago,  # Only consider recent assessments
+            assessment_date__lte=timezone.now()  # Ensure no future dates
+        ).order_by('-assessment_date')
+        
+        # Annotate customers with latest assessment date and expired assessment flag
+        customers = customers.annotate(
+            latest_assessment_date=Subquery(
+                latest_assessments.values('assessment_date')[:1]
+            ),
+            needs_reassessment=Case(
+                When(latest_assessment_date__lt=three_months_ago, then=True),
+                When(latest_assessment_date__isnull=True, then=True),
+                default=False,
+                output_field=FloatField()
+            )
+        )
+        
+        # Calculate risk distribution and compliance metrics
+        total_count = customers.count()
+        last_month = timezone.now() - timedelta(days=30)
+        previous_month_count = Customer.objects.filter(created_at__lt=last_month).count()
+        
+        risk_counts = customers.aggregate(
+            high_risk=Count(Case(
+                When(risk_score__gte=0.7, then=1),
+                output_field=FloatField()
+            )),
+            medium_risk=Count(Case(
+                When(Q(risk_score__gte=0.3) & Q(risk_score__lt=0.7), then=1),
+                output_field=FloatField()
+            )),
+            low_risk=Count(Case(
+                When(risk_score__lt=0.3, then=1),
+                output_field=FloatField()
+            )),
+            cdd_complete=Count(Case(
+                When(is_verified=True, then=1),
+                output_field=FloatField()
+            )),
+            needs_reassessment=Count(Case(
+                When(needs_reassessment=True, then=1),
+                output_field=FloatField()
+            )),
+            pending_verification=Count(Case(
+                When(is_verified=False, then=1),
+                output_field=FloatField()
+            ))
+        )
+        
+        # Calculate customer growth
+        if previous_month_count > 0:
+            customer_growth = ((total_count - previous_month_count) / previous_month_count) * 100
+        else:
+            customer_growth = 100 if total_count > 0 else 0
+        
+        # Calculate risk percentages
+        if total_count > 0:
+            risk_percentages = {
+                'high_risk_percentage': (risk_counts['high_risk'] / total_count) * 100,
+                'medium_risk_percentage': (risk_counts['medium_risk'] / total_count) * 100,
+                'low_risk_percentage': (risk_counts['low_risk'] / total_count) * 100
+            }
+            
+            # Calculate CDD completion percentage
+            cdd_complete_percentage = (risk_counts['cdd_complete'] / total_count) * 100
+            
+            # Calculate reassessment needed percentage
+            reassessment_percentage = (risk_counts['needs_reassessment'] / total_count) * 100
+        else:
+            risk_percentages = {
+                'high_risk_percentage': 0,
+                'medium_risk_percentage': 0,
+                'low_risk_percentage': 0
+            }
+            cdd_complete_percentage = 0
+            reassessment_percentage = 0
+        
+        # Prepare customer data with risk assessments
+        customer_data = []
+        for customer in customers:
+            try:
+                latest_assessment = None
+                if customer.latest_assessment_date:
+                    latest_assessment = RiskAssessment.objects.filter(
+                        customer=customer,
+                        assessment_date=customer.latest_assessment_date
+                    ).first()
+                
+                customer_data.append({
+                    'customer': customer,
+                    'latest_assessment': latest_assessment,
+                    'needs_reassessment': customer.needs_reassessment
+                })
+            except DatabaseError as e:
+                messages.warning(
+                    request,
+                    f'Error retrieving risk assessment for {customer.user.get_full_name()}: {str(e)}'
+                )
+        
+        context = {
+            'customer_data': customer_data,
+            'total_customers': total_count,
+            'customer_growth': round(customer_growth, 1),
+            'high_risk_count': risk_counts['high_risk'],
+            'high_risk_percentage': round(risk_percentages['high_risk_percentage'], 1),
+            'medium_risk_percentage': round(risk_percentages['medium_risk_percentage'], 1),
+            'low_risk_percentage': round(risk_percentages['low_risk_percentage'], 1),
+            'cdd_complete_percentage': round(cdd_complete_percentage, 1),
+            'reassessment_needed_count': risk_counts['needs_reassessment'],
+            'reassessment_needed_percentage': round(reassessment_percentage, 1),
+            'pending_verification_count': risk_counts['pending_verification'],
+            'review_needed_count': risk_counts['needs_reassessment'],
+            'last_update': timezone.now()
+        }
+        
+        # Add warning for high-risk concentration
+        if risk_percentages['high_risk_percentage'] > 30:  # FCA threshold
+            messages.warning(
+                request,
+                'High-risk customer concentration exceeds FCA recommended threshold (30%). '
+                'Review risk management procedures.'
+            )
+        
+        return render(request, 'customers.html', context)
+        
+    except DatabaseError as e:
+        messages.error(
+            request,
+            f'Error accessing customer data: {str(e)}. Please try again or contact support.'
+        )
+        return render(request, 'customers.html', {
+            'customer_data': [],
+            'total_customers': 0,
+            'error': True
+        })
 
 @login_required
 def transaction_list(request):

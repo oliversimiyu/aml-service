@@ -48,6 +48,10 @@ class Customer(models.Model):
             ('review_required', _('Review Required'))
         ]
     )
+    created_at = models.DateTimeField(
+        default=datetime.now,
+        help_text=_('Date when the customer was added to the system')
+    )
     
     def __str__(self):
         return f"{self.user.username} ({self.customer_type})"
@@ -118,6 +122,9 @@ class RiskAssessment(models.Model):
     
     def __str__(self):
         return f"Risk Assessment for {self.customer.user.username} on {self.assessment_date.date()}"
+    
+    class Meta:
+        get_latest_by = 'assessment_date'
 
 class VerificationDocument(models.Model):
     """Document verification model for KYC process.

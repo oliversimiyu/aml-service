@@ -1,27 +1,8 @@
-# COMP1831 - Technologies for Anti-Money Laundering and Financial Crime
+# AML Service - Modern Anti-Money Laundering Platform
 
-## Project Overview
+## Overview
 
-This project is developed as part of the COMP1831 module assessment, focusing on implementing an Anti-Money Laundering (AML) service that meets modern FinTech requirements and FCA compliance standards.
-
-### Assessment Components
-
-1. **Report (70%)**
-   - Word count: 2500-3000 words
-   - Key sections:
-     - Background research
-     - Solution architecture and implementation
-     - Data requirements and privacy approach
-     - System architecture and scalability
-
-2. **Lab Portfolio (30%)**
-   - Implementation exercises
-   - Screenshots of key features
-   - Code documentation
-   - Technical explanations
-
-## Solution Overview
-AML Service is a comprehensive anti-money laundering compliance platform designed to help financial institutions meet FCA (Financial Conduct Authority) requirements. The platform provides robust customer due diligence, transaction monitoring, and risk assessment capabilities.
+AML Service is a comprehensive anti-money laundering compliance platform designed to help financial institutions meet FCA (Financial Conduct Authority) requirements. Built with modern technologies and best practices, this platform provides robust customer due diligence, transaction monitoring, and risk assessment capabilities.
 
 ## Features
 
@@ -170,15 +151,15 @@ python manage.py test
 ### Code Style
 Follow PEP 8 guidelines for Python code. Use the included `.gitignore` for proper version control.
 
-## Academic Context
+## Production Deployment
 
-This project demonstrates the practical implementation of anti-money laundering technologies in modern FinTech applications. It serves as both a learning platform and a prototype for real-world AML service implementation.
+Before deploying to production, ensure:
+1. Comprehensive security audit is performed
+2. FCA compliance requirements are met
+3. Data protection measures are properly implemented
+4. Infrastructure is properly scaled for production load
+5. All sensitive data is properly encrypted
+6. Monitoring and alerting systems are in place
 
-### Learning Outcomes
-- Understanding of FCA compliance requirements
-- Implementation of secure FinTech solutions
-- Application of machine learning in financial crime detection
-- Development of scalable financial service architectures
-
-### Note
-This project is part of an academic assignment and should not be used in production without proper security audits and compliance reviews.
+### Support
+For issues, feature requests, or security concerns, please open an issue in the repository.
